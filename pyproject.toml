@@ -1,0 +1,19 @@
+[project]
+name = "Astra"
+version = "0.1.0"
+readme = "README.md"
+description = "Astra: Minimal independent refactor for LLaVA-OneVision acceleration."
+requires-python = ">=3.10"
+dependencies = [
+    "decord>=0.6.0",
+    "torch==2.7.0",
+    "torchvision>=0.20.1",
+    "transformers==4.57.3",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["astra_core*", "llava*"]
