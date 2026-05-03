@@ -1,37 +1,34 @@
-# Astra
+Astra
+Astra is an independently refactored codebase derived from dynamicvid. It currently consists of three independently maintainable components: astra_core, llava, and lmms-eval.
 
-Astra 是从 `dynamicvid` 独立重构出的代码库版本，当前包含可独立维护的 `astra_core`、`llava`、`lmms-eval` 三部分。
+Architectural Nomenclature
+STV-Guided Dynamic Budget Allocation
 
-## 架构命名
+Adaptive Backward Temporal Merging
 
-- STV-Guided Dynamic Budget Allocation
-- Adaptive Backward Temporal Merging
-- Dual-Perspective Token Selection
+Dual-Perspective Token Selection
 
-## 剪枝命名
+Pruning Nomenclature
+Visual-Guided Pruning: Visual Recycling
 
-- Visual-Guided Pruning：视觉回收
-- Semantic Recycle Pruning：语义回收剪枝
+Semantic Recycle Pruning: Semantic Recycling/Pruning
 
-## 目录
+Directory Structure
+astra_core/: Implementation of core methodologies.
 
-- `astra_core/`：核心方法实现
-- `llava/`：LLaVA 代码副本
-- `lmms-eval/`：评测框架代码副本
-- `run_llava_onevision.sh`：最小评测脚本（固定参数）
-- `setup_astra.sh`：一键环境配置
-- `requirements_Astra.txt`：依赖清单
+llava/: A local copy of the LLaVA codebase.
 
-## 环境变量
+lmms-eval/: A local copy of the evaluation framework.
 
-- `CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7`
-- `DECORD_NUM_THREADS=8`
-- `PYTHONPATH=<astra_root>:<astra_root>/lmms-eval`
+run_llava_onevision.sh: Minimal evaluation script (with fixed parameters).
 
-## 一键配置与运行
+setup_astra.sh: One-click environment configuration script.
 
-```bash
-bash setup_astra.sh
-source env_astra.sh
-bash run_llava_onevision.sh
-```
+requirements_Astra.txt: Dependency manifest.
+
+Environment Variables
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+
+DECORD_NUM_THREADS=8
+
+PYTHONPATH=<astra_root>:<astra_root>/lmms-eval
