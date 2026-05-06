@@ -157,7 +157,8 @@ def stv_budget_weights(
     mu_full: float = 0.60,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    语义相关逐帧权重 + 平均 STV 门控的均匀混合（用于动态 budget 日志 / 辅助统计）。
+    Uniform mixture of semantic-relevant per-frame weights + average STV gating 
+    (used for dynamic budget logging / auxiliary statistics).
 
     - w_sem = softmax(text_relevance_logits / temperature)
     - sem_mix = clamp((average_stv - mu_threshold) / (mu_full - mu_threshold), 0, 1)
@@ -194,7 +195,7 @@ def stv_budget_weights(
     return w.to(frame_features.dtype), probs.to(frame_features.dtype), mu_d.to(frame_features.dtype), sem_mix
 
 
-# 旧名兼容（已弃用）
+# Legacy name compatibility (deprecated)
 stv_frame_soft_budget_weights = stv_budget_weights
 
 
@@ -323,4 +324,3 @@ def build_frame_features_and_quality(
     frame_features = video_features.mean(dim=1)  # (T, D)
     frame_quality = cls_attention.mean(dim=1)  # (T,)
     return frame_features, frame_quality
-
