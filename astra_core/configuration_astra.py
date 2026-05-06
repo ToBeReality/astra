@@ -1,7 +1,5 @@
 from typing import Optional
-
 from dataclasses import dataclass, field
-
 import torch
 
 
@@ -58,16 +56,16 @@ class AstraConfig:
     recycle_mu_d_map_low: float = field(default=-1.0)
     recycle_mu_d_map_full: float = field(default=-1.0)
     # Linear schedule on average_stv (independent of recycle_mu_d_adapt gate logic):
-    # fluct <= recycle_stv_cov_fluct_low → use all seg_T frames for semantic recycle / budget story;
-    # fluct >= recycle_stv_cov_fluct_high → use only baseline policy frame count (e.g. top_quarter → ~T/4).
+    # fluct <= recycle_stv_cov_fluct_low -> use all seg_T frames for semantic recycle / budget story;
+    # fluct >= recycle_stv_cov_fluct_high -> use only baseline policy frame count (e.g. top_quarter -> ~T/4).
     recycle_stv_coverage_schedule: bool = field(default=False)
     recycle_stv_cov_fluct_low: float = field(default=0.05)
     recycle_stv_cov_fluct_high: float = field(default=0.2)
-    # True：average_stv（驱动 recycle_stv_coverage_schedule / recycle_mu_d 映射等）使用 raw_v patch 均值后的相邻 1−cos（与 stv_budget_mu_d_raw 一致）。
-    # False：使用 joint 表征（head+visual_projection 后）上的 adjacent_change_mean。
+    # True: average_stv (driving recycle_stv_coverage_schedule / recycle_mu_d mapping, etc.) uses adjacent 1-cos of raw_v patch means (consistent with stv_budget_mu_d_raw).
+    # False: Uses adjacent_change_mean on the joint representation (after head+visual_projection).
     average_stv_from_raw_visual: bool = field(default=False)
     complementary_ratio: float = field(default=0.30)
-    # semantic_recycle_pruning: integer parts for largest-remainder split of target_k (sum need not be 10; ratio 7:1:2 → 7,1,2).
+    # semantic_recycle_pruning: integer parts for largest-remainder split of target_k (sum need not be 10; ratio 7:1:2 -> 7,1,2).
     post_merge_triple_dom_parts: int = field(default=7)
     post_merge_triple_visual_cluster_parts: int = field(default=1)
     post_merge_triple_sem_parts: int = field(default=2)
@@ -158,8 +156,8 @@ class AstraConfig:
     # instead of keeping explicit non-important-frame tokens.
     merge_non_important_to_important: bool = field(default=False)
     non_important_merge_beta: float = field(default=0.5)
-    # stv_guided_dynamic_budget_allocation：动态逐帧预算 = 均匀整数底稿 + 与语义回收帧 / k_sem 一致的零和重分配（见 _apply_uniform_recycle_story_per_frame_budget）。
-    # 下列参数用于 stv_budget_weights 日志与 recycle_stv 映射回退等。
+    # stv_guided_dynamic_budget_allocation: Dynamic per-frame budget = uniform integer base + zero-sum reallocation consistent with semantic recycle frames / k_sem (see _apply_uniform_recycle_story_per_frame_budget).
+    # The following parameters are used for stv_budget_weights logging and recycle_stv mapping fallback, etc.
     stv_budget_min_tokens_per_frame: int = field(default=1)
     stv_budget_eps: float = field(default=1e-6)
     stv_budget_temperature: float = field(default=1.0)
@@ -186,8 +184,8 @@ class AstraConfig:
     text_cls_embed: Optional[torch.Tensor] = field(default=None, repr=False)
     last_important_frame_count: Optional[int] = field(default=None)
     last_budget_stats: Optional[dict] = field(default=None, repr=False)
-    # 平均时空波动 (average STV): 全视频相邻帧特征余弦相似度 → 取 (1−cos) 再对相邻对求平均。见 adjacent_change_mean。
-    # 在 stv_guided_dynamic_budget_allocation 路径写入；与 stv_budget_mu_threshold/mu_full（sem_mix）无关。
+    # Average Spatio-Temporal Volatility (average STV): Adjacent frame feature cosine similarity across the entire video -> take (1-cos) then average adjacent pairs. See adjacent_change_mean.
+    # Written in stv_guided_dynamic_budget_allocation path; independent of stv_budget_mu_threshold/mu_full (sem_mix).
     average_stv: Optional[float] = field(default=None, repr=False)
     last_recycle_adapt_stats: Optional[dict] = field(default=None, repr=False)
 
