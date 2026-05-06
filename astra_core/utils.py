@@ -26,7 +26,7 @@ from .frame_selection import (
 from .token_selection import ALL_TOKEN_SELECTION_METHOD as TOKEN_SELECTION_BY_NAME
 
 def _is_stv_guided_dynamic_budget_allocation(method: Optional[str]) -> bool:
-    """动态逐帧预算与语义回收对齐（整段单 segment）；兼容旧名 stv_frame_soft_budget。"""
+    """Dynamic per-frame budget aligned with semantic recycle (single segment for the whole clip); backward compatible with the old name stv_frame_soft_budget."""
     if method is None:
         return False
     m = str(method).strip().lower()
@@ -491,8 +491,8 @@ def _semantic_recycle_recycle_frames_with_stv_coverage_schedule(
     """Baseline recycle frames from policy, then optionally expand/shrink count vs average_stv.
 
     When recycle_stv_coverage_schedule is True:
-    - average_stv <= recycle_stv_cov_fluct_low → top-k uses all seg_T frames (full coverage).
-    - average_stv >= recycle_stv_cov_fluct_high → top-k uses baseline policy count only (e.g. ceil(T/4)).
+    - average_stv <= recycle_stv_cov_fluct_low -> top-k uses all seg_T frames (full coverage).
+    - average_stv >= recycle_stv_cov_fluct_high -> top-k uses baseline policy count only (e.g. ceil(T/4)).
     - Between: linear interpolation of frame count between seg_T and baseline.
 
     Returns (top_frame_local_indices, n_baseline) where n_baseline is the policy frame count without schedule.
@@ -1959,7 +1959,7 @@ def astra_compression(
         else:
             segment_lengths = torch.tensor([num_frames], dtype=torch.long, device=video_features.device)
 
-    # stv_guided_dynamic_budget_allocation：整段视频为单一 segment，seg_T = 采样帧数 num_frames。
+    # stv_guided_dynamic_budget_allocation: The entire video is a single segment, seg_T = number of sampled frames num_frames.
     if _is_stv_guided_dynamic_budget_allocation(frame_selection_method):
         segment_lengths = torch.tensor([num_frames], dtype=torch.long, device=video_features.device)
 
@@ -2116,7 +2116,7 @@ def astra_compression(
     offset = 0
     per_frame_budget_vector = None
     class_per_frame_budget = None
-    # stv_guided_dynamic_budget_allocation：第一部分动态 budget = 均匀底稿 + 与第三部分语义回收帧/k_sem 一致的零和重分配。
+    # stv_guided_dynamic_budget_allocation: The first part dynamic budget = uniform base + zero-sum reallocation consistent with the third part semantic recycle frames / k_sem.
     if _is_stv_guided_dynamic_budget_allocation(frame_selection_method):
         frame_feats = getattr(astra_config, "stv_budget_frame_features", None)
         if frame_feats is None:
@@ -2223,7 +2223,7 @@ def astra_compression(
             "mean": mean_b,
             "std": std_b,
             "cv": cv,
-            # average_stv：驱动 recycle_stv / 映射的标量（可为 raw 或 joint，见 average_stv_from_raw_visual）
+            # average_stv: Scalar driving recycle_stv / mapping (can be raw or joint, see average_stv_from_raw_visual).
             "average_stv": float(astra_config.average_stv) if astra_config.average_stv is not None else float(mu_d.item()),
             "average_stv_joint": float(mu_d.item()),
             "mu_d_raw": float(_mu_d_raw) if _mu_d_raw is not None else None,
@@ -2318,17 +2318,17 @@ def astra_compression(
         segment_cls_attention = cls_attention[offset : offset + seg_len]
         segment_global_indices = global_indices.view(num_frames, num_visual_tokens)[offset : offset + seg_len]
 
-        # stv_guided_dynamic_budget_allocation: 动态逐帧预算 + 全帧 temporal backward merge + 剩余 token 用 visual_guided_pruning 剪枝。
+        # stv_guided_dynamic_budget_allocation: Dynamic per-frame budget + full-frame temporal backward merge + prune remaining tokens using visual_guided_pruning.
         if _is_stv_guided_dynamic_budget_allocation(frame_selection_method) and per_frame_budget_vector is not None:
             frame_budgets = per_frame_budget_vector[offset : offset + seg_len]
             seg_T = int(seg_len.item())
 
-            # stv_frame 逐帧预算之和 = merge 后最终保留的 visual token 数（由 visual_guided_pruning 选出）。
+            # stv_frame sum of per-frame budgets = the final number of retained visual tokens after merging (selected by visual_guided_pruning).
             target_k = int(frame_budgets.sum().item())
             target_k = max(1, min(target_k, seg_T * num_visual_tokens))
 
-            # 1) 全部空间 token 参与后向合并（当前帧 token 与前一帧局部/全局候选比相似度，>=阈值则合并）。
-            # 效率：无 soft lower bound 时只跑一次 merge；有 soft LB 且第一次合并已满足 target_k 时复用该结果，避免同阈值下重复 merge。
+            # 1) All spatial tokens participate in backward merging (compare similarity between current frame token and previous frame local/global candidates; merge if >= threshold).
+            # Efficiency: run merge only once when there is no soft lower bound; when soft LB is enabled and the first merge already satisfies target_k, reuse the result to avoid repeated merging under the same threshold.
             tmerge_gh = int(getattr(astra_config, "vision_spatial_h", 0) or 0)
             tmerge_gw = int(getattr(astra_config, "vision_spatial_w", 0) or 0)
             token_mask = torch.ones(
@@ -2469,7 +2469,7 @@ def astra_compression(
                     f"target_k={int(target_k)}"
                 )
 
-            # 2) 合并后剩余 token + 对应 cls_attention（供 visual_guided_pruning）。
+            # 2) Remaining tokens after merging + corresponding cls_attention (for visual_guided_pruning).
             sttm_feats: List[torch.Tensor] = []
             sttm_gidx: List[torch.Tensor] = []
             sttm_attn: List[torch.Tensor] = []
@@ -2638,7 +2638,7 @@ def astra_compression(
                         if cand_idx.numel() > 0:
                             cand_attn = flat_attn[cand_idx].float()
                             order = torch.argsort(cand_attn, descending=True)
-                            extra = []
+                            extra: List[int] = []
                             for ii in cand_idx[order].tolist():
                                 if flat_gidx[ii].item() in used:
                                     continue
@@ -2646,9 +2646,9 @@ def astra_compression(
                                 if len(extra) >= need:
                                     break
                             if extra:
-                                extra = torch.tensor(extra, device=flat_feats.device, dtype=torch.long)
-                                final_feat = torch.cat([final_feat, flat_feats[extra]], dim=0)
-                                final_gidx = torch.cat([final_gidx, flat_gidx[extra]], dim=0)
+                                ex = torch.tensor(extra, device=flat_feats.device, dtype=torch.long)
+                                final_feat = torch.cat([final_feat, flat_feats[ex]], dim=0)
+                                final_gidx = torch.cat([final_gidx, flat_gidx[ex]], dim=0)
 
                     sort_idx = torch.argsort(final_gidx)
                     segment_features = final_feat[sort_idx]
@@ -2998,7 +2998,7 @@ def astra_compression(
                         if cand_idx.numel() > 0:
                             cand_attn = flat_attn[cand_idx].float()
                             order = torch.argsort(cand_attn, descending=True)
-                            extra = []
+                            extra: List[int] = []
                             for ii in cand_idx[order].tolist():
                                 if flat_gidx[ii].item() in used:
                                     continue
